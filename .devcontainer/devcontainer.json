@@ -5,10 +5,9 @@
   "workspaceFolder": "/workspace",
   "shutdownAction": "stopCompose",
   "overrideCommand": true,
-  "forwardPorts": [8501, 5000, 8888],
+  "forwardPorts": [8501, 8888],
   "portsAttributes": {
     "8501": { "label": "Streamlit" },
-    "5000": { "label": "MLflow UI" },
     "8888": { "label": "JupyterLab" }
   },
   "customizations": {

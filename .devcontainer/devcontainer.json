@@ -60,7 +60,7 @@
               "console": "internalConsole",
               "args": [
                 "run",
-                "src/poc/app/main.py",
+                "src/f1_pit_stops/app/main.py",
                 "--server.port",
                 "8501",
                 "--server.runOnSave",
@@ -115,5 +115,5 @@
     }
   },
   // pyproject.toml がある場合のみ依存関係を同期する（初回起動時はスキップ）
-  "postCreateCommand": "if [ -f pyproject.toml ]; then uv sync --no-install-project; else echo 'No pyproject.toml found. Run uv init to start.'; fi"
+  "postCreateCommand": "if [ -f pyproject.toml ]; then uv sync; else echo 'No pyproject.toml found. Run uv init to start.'; fi"
 }

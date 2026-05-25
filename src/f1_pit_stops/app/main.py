@@ -22,7 +22,8 @@ import streamlit as st
 
 # ── パス ─────────────────────────────────────────────────────────────────────
 ROOT = Path(__file__).parents[3]   # src/pkg/app/main.py → 3階層上 = プロジェクトルート
-MODEL_DIR = ROOT / "model"
+MODEL_DIR = ROOT / "model"         # ローカル学習済みモデル（gitignore 対象）
+DEMO_DIR  = ROOT / "model" / "demo"  # デモ用モデル（git にコミット済み）
 
 # ── 定数 ─────────────────────────────────────────────────────────────────────
 FEATURE_COLS = ["Stint", "Year", "Driver", "Race", "TyreLife", "RaceProgress", "Compound"]
@@ -37,11 +38,19 @@ COMPOUND_OPTIONS = ["HARD", "MEDIUM", "SOFT", "INTERMEDIATE", "WET"]
 def load_resources() -> tuple[list | None, dict | None]:
     """学習済みモデルと categories.json を読み込む。
 
-    model/ が存在しない場合は (None, None) を返す。
+    優先順位：
+      1. model/          ローカルで学習した最新モデル（gitignore 対象）
+      2. model/demo/     git にコミットされたデモ用モデル（Streamlit Cloud 用）
+    どちらも存在しない場合は (None, None) を返す。
     @st.cache_resource により、アプリ起動中は1回だけ読み込む。
     """
     fold_paths = [MODEL_DIR / f"lgbm_fold{i}.pkl" for i in range(1, 5)]
     cat_path = MODEL_DIR / "categories.json"
+
+    # ローカルモデルが存在しない場合はデモモデルにフォールバック
+    if not all(p.exists() for p in fold_paths) or not cat_path.exists():
+        fold_paths = [DEMO_DIR / f"lgbm_fold{i}.pkl" for i in range(1, 5)]
+        cat_path = DEMO_DIR / "categories.json"
 
     if not all(p.exists() for p in fold_paths) or not cat_path.exists():
         return None, None

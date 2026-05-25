@@ -14,8 +14,10 @@ multirun/
 mlruns/
 
 # Model artifacts (keep folder, ignore serialized files)
+# model/demo/ のみコミット対象（Streamlit Cloud 用デモモデル）
 model/*
 !model/.gitkeep
+!model/demo/
 
 # Environment variables
 .env

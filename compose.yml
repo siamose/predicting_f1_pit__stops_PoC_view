@@ -3,7 +3,7 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile
-    container_name: ${CONTAINER_NAME:-f1-pit-stops-dev}
+    container_name: ${CONTAINER_NAME:-kaggle_06_predicting_f1_pit__stops_dev}
     volumes:
       - ./:/workspace:cached
     working_dir: /workspace

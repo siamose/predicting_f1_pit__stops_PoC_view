@@ -10,6 +10,12 @@ LightGBM × Stratified K-Fold で学習し、Streamlit 上でドライバー・�
 - **再現性の高い開発環境**：Dev Container により、OS・依存関係を問わず誰でも同一条件で動作確認できる環境を整備した
 - **非エンジニアにも届く成果物**：Streamlit でインタラクティブなシミュレーター画面を構築。ドライバーやタイヤ条件をスライダー・セレクトボックスで操作しながらリアルタイムにピット確率を確認できるため、技術的背景を問わずステークホルダーへの説明に活用できる
 
+## 🔮 デモ
+
+デモモデルをもとにインタラクティブな画面を体験できます（学習・環境構築不要）。
+
+👉 **[Streamlit アプリを開く](https://predictingf1pitstopspocview-pcuczhsvgujhkilh9faxt6.streamlit.app/)**
+
 ## Stack
 
 | Tool                                         | Role                         | Design Notes                             |
@@ -34,12 +40,18 @@ uv sync
 ## Getting Started
 
 ```bash
+# 0. Kaggle からデータを取得して配置
+#    https://www.kaggle.com/competitions/playground-series-s6e5
+#    → train.csv / test.csv / sample_submission.csv を data/raw/ に置く
+
 # 1. 学習（前処理 + モデル保存）
 uv run python scripts/train.py
 
 # 2. アプリ起動
 uv run streamlit run src/f1_pit_stops/app/main.py
 ```
+
+> **Note** ローカルで学習せずにアプリだけ試したい場合は、上の [デモリンク](#-デモ) からすぐ使えます。
 
 ## Directory Structure
 
@@ -59,7 +71,6 @@ uv run streamlit run src/f1_pit_stops/app/main.py
 └── src/f1_pit_stops/
     ├── app/
     │   └── main.py          # Streamlit アプリ
-    ├── models/              # モデル関連
     └── schema/              # Pandera スキーマ定義
 ```
 

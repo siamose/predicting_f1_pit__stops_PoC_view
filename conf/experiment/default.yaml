@@ -1,0 +1,14 @@
+# @package _global_
+experiment:
+  name: default
+  params:
+    # LightGBM ハイパーパラメータ
+    learning_rate: 0.05
+    num_leaves: 63
+    min_child_samples: 20
+    feature_fraction: 0.8
+    bagging_fraction: 0.8
+    bagging_freq: 1
+    random_state: 42
+    # 交差検証
+    n_splits: 4

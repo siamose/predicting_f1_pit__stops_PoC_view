@@ -1,0 +1,119 @@
+{
+  "name": "Predicting F1 Pit Stops Dev Environment",
+  "dockerComposeFile": ["../compose.yml"],
+  "service": "app",
+  "workspaceFolder": "/workspace",
+  "shutdownAction": "stopCompose",
+  "overrideCommand": true,
+  "forwardPorts": [8501, 5000, 8888],
+  "portsAttributes": {
+    "8501": { "label": "Streamlit" },
+    "5000": { "label": "MLflow UI" },
+    "8888": { "label": "JupyterLab" }
+  },
+  "customizations": {
+    "vscode": {
+      "settings": {
+        // Pythonのデフォルトのインタプリタパス
+        "python.defaultInterpreterPath": "/usr/local/bin/python",
+        "[python]": {
+          // ファイルの保存時にフォーマットを実行する
+          "editor.formatOnSave": true,
+          // ファイルの保存時のアクションを設定する
+          "editor.codeActionsOnSave": {
+            "source.fixAll.ruff": "explicit",
+            "source.organizeImports.ruff": "explicit"
+          },
+          "editor.defaultFormatter": "charliermarsh.ruff"
+        },
+        // Notebookの保存時にフォーマットを実行する
+        "notebook.formatOnSave.enabled": true,
+        "notebook.codeActionsOnSave": {
+          "notebook.source.fixAll": "explicit",
+          "notebook.source.organizeImports": "explicit"
+        },
+        "autoDocstring.docstringFormat": "google",
+        "python.testing.pytestArgs": [
+          "tests",
+          "-vv",
+          "-s"
+        ],
+        "python.testing.unittestEnabled": false,
+        "python.testing.pytestEnabled": true,
+        "jupyter.interactiveWindow.textEditor.magicCommandsAsComments": true,
+        "jupyter.debugJustMyCode": false,
+        // 引数名を表示
+        "python.analysis.inlayHints.callArgumentNames": "all",
+        // 型を表示
+        "python.analysis.inlayHints.variableTypes": true,
+        // 戻り値の型を表示
+        "python.analysis.inlayHints.functionReturnTypes": true,
+        "launch": {
+          "version": "0.2.0",
+          "configurations": [
+            {
+              "name": "Streamlit: サーバーを起動",
+              "type": "debugpy",
+              "request": "launch",
+              "module": "streamlit",
+              "cwd": "${workspaceFolder}",
+              "console": "internalConsole",
+              "args": [
+                "run",
+                "src/poc/app/main.py",
+                "--server.port",
+                "8501",
+                "--server.runOnSave",
+                "true"
+              ],
+              "justMyCode": false
+            },
+            {
+              "name": "Python: Current File",
+              "type": "debugpy",
+              "request": "launch",
+              "program": "${file}",
+              "console": "internalConsole",
+              "justMyCode": false
+            },
+            {
+              "name": "Python: Debug Test",
+              "type": "debugpy",
+              "request": "launch",
+              "purpose": ["debug-test"],
+              "console": "internalConsole",
+              "justMyCode": false
+            }
+          ]
+        }
+      },
+      "extensions": [
+        // 開発支援
+        "ceintl.vscode-language-pack-ja",
+        "github.copilot",
+        "usernamehw.errorlens",
+        "gruntfuggly.todo-tree",
+        "ibm.output-colorizer",
+        "editorconfig.editorconfig",
+        "mosapride.zenkaku",
+        "ionutvmi.path-autocomplete",
+        // Python関連
+        "ms-python.python",
+        "charliermarsh.ruff",
+        "ms-python.mypy-type-checker",
+        "njpwerner.autodocstring",
+        "ms-toolsai.jupyter",
+        "ms-toolsai.jupyter-keymap",
+        // Markdown関連
+        "yzane.markdown-pdf",
+        // CSV関連
+        "janisdd.vscode-edit-csv",
+        "mechatroner.rainbow-csv",
+        // Git関連
+        "mhutchie.git-graph"
+      ]
+    }
+  },
+  // pyproject.toml がある場合のみ依存関係を同期する（初回起動時はスキップ）
+  "postCreateCommand": "if [ -f pyproject.toml ]; then uv sync --no-install-project; else echo 'No pyproject.toml found. Run uv init to start.'; fi"
+}

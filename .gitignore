@@ -1,0 +1,37 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+.venv/
+.uv/
+
+# Hydra
+outputs/
+multirun/
+
+# MLflow
+mlruns/
+
+# Model artifacts (keep folder, ignore serialized files)
+model/*
+!model/.gitkeep
+
+# Environment variables
+.env
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data (keep folder structure, ignore files)
+data/raw/*
+data/processed/*
+data/external/*
+!data/**/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude Code
+.claude/

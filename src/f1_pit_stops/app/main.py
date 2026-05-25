@@ -299,6 +299,10 @@ def page_experiments() -> None:
     st.subheader("Submission スコア分布")
     sub_path = ROOT / "data" / "processed" / "submission.csv"
 
+    # ローカルになければ demo/ にフォールバック（Streamlit Cloud 用）
+    if not sub_path.exists():
+        sub_path = ROOT / "data" / "processed" / "demo" / "submission.csv"
+
     if sub_path.exists():
         sub = pd.read_csv(sub_path)
         c1, c2, c3 = st.columns(3)

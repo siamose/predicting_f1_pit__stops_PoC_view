@@ -10,8 +10,8 @@ dist/
 outputs/
 multirun/
 
-# MLflow
-mlruns/
+# MLflow（メタデータはコミット、artifact の大容量ファイルのみ除外）
+mlruns/**/artifacts/
 
 # Model artifacts (keep folder, ignore serialized files)
 # model/demo/ のみコミット対象（Streamlit Cloud 用デモモデル）
@@ -30,6 +30,7 @@ data/raw/*
 data/processed/*
 data/external/*
 !data/**/.gitkeep
+!data/processed/demo/
 
 # OS
 .DS_Store

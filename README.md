@@ -47,11 +47,33 @@ uv sync
 # 1. 学習（前処理 + モデル保存）
 uv run python scripts/train.py
 
-# 2. アプリ起動
+# 1.5. ハイパーパラメータ探索（Optuna・10 トライアル、任意）
+uv run python scripts/train.py -m
+#    → learning_rate / num_leaves を自動探索。各トライアルが MLflow に記録される
+```
+
+`conf/config.yaml` の `hydra.sweeper.n_trials` や探索範囲を**書き換えずに、1回限りの設定で試したいとき**は CLI で上書きします。たとえば次のような場面です。
+
+- 試走としてトライアル数だけ減らしたい（本番の 10 回はそのまま残したい）
+- 前回の MLflow 結果を見て、`learning_rate` の探索範囲を絞り込みたい
+- 設定ファイルを触らずに、別の探索条件をすぐ試したい
+
+```bash
+uv run python scripts/train.py -m \
+  hydra.sweeper.n_trials=5 \
+  hydra.sweeper.params.experiment.params.learning_rate=interval(0.01, 0.05)
+```
+
+```bash
+# 2. 実験結果を MLflow UI で確認
+uv run mlflow ui
+#    → http://localhost:5000 をブラウザで開く（mlruns/ を自動参照）
+
+# 3. アプリ起動
 uv run streamlit run src/f1_pit_stops/app/main.py
 ```
 
-> **Note** ローカルで学習せずにアプリだけ試したい場合は、上の [デモリンク](#-デモ) からすぐ使えます。
+> **Note** ローカルで学習せずにアプリだけ試したい場合は、上の [デモリンク](#-デモ) からすぐ使えます。実験ログの簡易確認は Streamlit の「実験管理」ページでも可能です。
 
 ## Directory Structure
 

@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import json
 import pickle
+import shutil
 from pathlib import Path
 
 # train.py → scripts/ → プロジェクトルート → conf/
@@ -62,12 +63,20 @@ def apply_categories(
 
 # ── 学習 ──────────────────────────────────────────────────────────────────────
 
+def resolve_scale_pos_weight(value: str | float, y: pd.Series) -> float:
+    """scale_pos_weight を解決する。auto なら全体 y のクラス比から計算する。"""
+    if str(value) == "auto":
+        return float((y == 0).sum() / (y == 1).sum())
+    return float(value)
+
+
 def train_cv(
     X: pd.DataFrame,
     y: pd.Series,
     X_test: pd.DataFrame,
     params: DictConfig,
     model_dir: Path,
+    scale_pos_weight: float,
 ) -> tuple[np.ndarray, list[float]]:
     """StratifiedKFold × LightGBM で学習し、各 fold のモデルを pickle 保存する。
 
@@ -87,7 +96,7 @@ def train_cv(
         "feature_fraction": params.feature_fraction,
         "bagging_fraction": params.bagging_fraction,
         "bagging_freq": params.bagging_freq,
-        "scale_pos_weight": float((y == 0).sum() / (y == 1).sum()),
+        "scale_pos_weight": scale_pos_weight,
         "verbose": -1,
         "random_state": params.random_state,
     }
@@ -131,19 +140,68 @@ def train_cv(
     return test_preds, oof_auc
 
 
+# ── マルチラン：最良 trial をルートへ反映 ─────────────────────────────────────
+
+def _is_best_run(
+    experiment_name: str,
+    current_auc: float,
+    current_run_id: str,
+    sweep_dir: str,
+) -> bool:
+    """同一 multirun セッション内で current_auc が最高かどうかを判定する。
+
+    実行中の Run は search_runs に未反映のことがあるため、
+    同セッションの他 Run の最大値と直接比較する。
+    """
+    runs = mlflow.search_runs(
+        experiment_names=[experiment_name],
+        filter_string=f"tags.hydra_sweep_dir = '{sweep_dir}'",
+        order_by=["metrics.oof_auc_mean DESC"],
+        max_results=1000,
+    )
+    auc_col = "metrics.oof_auc_mean"
+    if runs.empty:
+        return True
+    other = runs.loc[runs["run_id"] != current_run_id, auc_col].dropna()
+    if other.empty:
+        return True
+    return current_auc >= float(other.max()) - 1e-9
+
+
+def _promote_to_root(work_dir: Path, root: Path, submission_rel: str) -> None:
+    """trial 作業ディレクトリの成果物をプロジェクトルートへコピーする。"""
+    src_model = work_dir / "model"
+    dst_model = root / "model"
+    dst_model.mkdir(parents=True, exist_ok=True)
+
+    for pkl in sorted(src_model.glob("lgbm_fold*.pkl")):
+        shutil.copy2(pkl, dst_model / pkl.name)
+    shutil.copy2(src_model / "categories.json", dst_model / "categories.json")
+
+    src_sub = work_dir / "submission.csv"
+    dst_sub = root / submission_rel
+    dst_sub.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(src_sub, dst_sub)
+
+
 # ── エントリーポイント ────────────────────────────────────────────────────────
 
 @hydra.main(version_base=None, config_path=_CONF_DIR, config_name="config")
 def main(cfg: DictConfig) -> float:
     root = Path(hydra.utils.get_original_cwd())
-    model_dir = root / "model"
-    model_dir.mkdir(exist_ok=True)
 
     mlflow.set_tracking_uri((root / cfg.mlflow.tracking_uri).as_uri())
     mlflow.set_experiment(cfg.mlflow.experiment_name)
 
     hydra_cfg = HydraConfig.get()
     is_multirun = hydra_cfg.mode.name == "MULTIRUN"
+    if is_multirun:
+        work_dir = Path(hydra_cfg.runtime.output_dir)
+        model_dir = work_dir / "model"
+    else:
+        work_dir = None
+        model_dir = root / "model"
+    model_dir.mkdir(parents=True, exist_ok=True)
     run_name = (
         f"{cfg.experiment.name}_trial{hydra_cfg.job.num}"
         if is_multirun
@@ -151,6 +209,9 @@ def main(cfg: DictConfig) -> float:
     )
 
     with mlflow.start_run(run_name=run_name):
+        if is_multirun:
+            mlflow.set_tag("hydra_sweep_dir", str(work_dir.parent.resolve()))
+
         mlflow.log_params(dict(cfg.experiment.params))
 
         # ── 1. データ読み込み・カラム選択・バリデーション ──────────────────
@@ -185,8 +246,19 @@ def main(cfg: DictConfig) -> float:
         y = train[TARGET]
         X_test = test[FEATURE_COLS]
 
+        scale_pos_weight = resolve_scale_pos_weight(
+            cfg.experiment.params.scale_pos_weight, y
+        )
+        mlflow.log_param("scale_pos_weight_value", scale_pos_weight)
+        print(
+            f"scale_pos_weight = {scale_pos_weight:.4f}"
+            f"  (policy: {cfg.experiment.params.scale_pos_weight})"
+        )
+
         print(f"\nTraining ({cfg.experiment.params.n_splits}-fold CV)...")
-        test_preds, oof_auc = train_cv(X, y, X_test, cfg.experiment.params, model_dir)
+        test_preds, oof_auc = train_cv(
+            X, y, X_test, cfg.experiment.params, model_dir, scale_pos_weight
+        )
 
         mean_auc = float(np.mean(oof_auc))
         std_auc = float(np.std(oof_auc))
@@ -199,12 +271,34 @@ def main(cfg: DictConfig) -> float:
         submission = sample_sub[["id"]].copy()
         submission[TARGET] = test_preds
 
-        sub_path = root / cfg.data.submission_path
+        if is_multirun:
+            sub_path = work_dir / "submission.csv"
+        else:
+            sub_path = root / cfg.data.submission_path
         sub_path.parent.mkdir(parents=True, exist_ok=True)
         submission.to_csv(sub_path, index=False)
 
         mlflow.log_artifact(str(sub_path))
         print(f"Submission saved → {sub_path}")
+
+        if is_multirun:
+            run = mlflow.active_run()
+            assert run is not None
+            sweep_dir = str(work_dir.parent.resolve())
+            if _is_best_run(
+                cfg.mlflow.experiment_name, mean_auc, run.info.run_id, sweep_dir
+            ):
+                _promote_to_root(work_dir, root, cfg.data.submission_path)
+                print(
+                    f"\nBest trial so far (OOF AUC = {mean_auc:.4f})"
+                    f" → promoted to {root / 'model'}"
+                    f" and {root / cfg.data.submission_path}"
+                )
+            else:
+                print(
+                    f"\nOOF AUC = {mean_auc:.4f} — not best,"
+                    " root model/ and submission.csv unchanged"
+                )
 
     return mean_auc
 

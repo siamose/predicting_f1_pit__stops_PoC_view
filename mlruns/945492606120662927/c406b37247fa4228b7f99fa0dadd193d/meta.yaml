@@ -1,0 +1,14 @@
+artifact_uri: file:///C:/Users/la9ma/AnotherBrainContainer/10_kaggle/kaggle_06_predicting_f1_pit__stops/mlruns/945492606120662927/c406b37247fa4228b7f99fa0dadd193d/artifacts
+end_time: 1781771781584
+entry_point_name: ''
+experiment_id: '945492606120662927'
+lifecycle_stage: active
+run_id: c406b37247fa4228b7f99fa0dadd193d
+run_name: default_trial7
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1781771758556
+status: 3
+tags: []
+user_id: root

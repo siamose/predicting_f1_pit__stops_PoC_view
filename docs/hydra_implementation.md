@@ -286,8 +286,21 @@ def main(cfg: DictConfig) -> None:
 
     with mlflow.start_run(run_name=cfg.experiment.name):
         mlflow.log_params(dict(cfg.experiment.params))
+        # scale_pos_weight は YAML で auto と定義し、
+        # 学習前に全体 y から解決した実数を scale_pos_weight_value として log_param する
         # ... 学習処理 ...
 ```
+
+### `scale_pos_weight` の記録
+
+`scale_pos_weight` だけはデータのクラス比から決まるため、YAML には方針として `auto` を置く。学習時に全体 `y` から実数を解決し、MLflow には次の2つが残る。
+
+| MLflow キー | 内容 |
+|---|---|
+| `scale_pos_weight` | YAML の方針（`auto` または CLI で上書きした数値） |
+| `scale_pos_weight_value` | 実際に LightGBM に渡した実数 |
+
+手動指定する場合: `experiment.params.scale_pos_weight=5.0`
 
 ---
 

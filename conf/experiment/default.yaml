@@ -9,6 +9,7 @@ experiment:
     feature_fraction: 0.8
     bagging_fraction: 0.8
     bagging_freq: 1
+    scale_pos_weight: auto  # auto = 全体 y の (負例数 / 正例数) を1回計算
     random_state: 42
     # 交差検証
     n_splits: 4
